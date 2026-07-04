@@ -14,13 +14,15 @@
 
 | 配置文件 | 作用 |
 |---------|------|
-| `application.yml` | 主配置（路由规则、Eureka 注册） |
+| `application.yml` | 主配置（Eureka 注册、服务发现） |
 | `application-feign.yml` | Resilience4j 断路器配置 |
 | `bootstrap.yml` | 引导配置（端口 8101/8102，Eureka/Config 地址） |
 
+默认端口 8101，可通过 `bootstrap.yml` 切换 Profile 使用 8102。
+
 ## 路由规则
 
-路由规则通过 Config Server 动态下发（`SpringCloudConfig/gateway/gateway-dev.yml`），包括：
+路由规则通过 Config Server 动态下发，配置文件位于 `SpringCloudConfig/gateway/gateway-dev.yml`，包括：
 
 - URI 转发
 - 路径重写（StripPrefix）
@@ -33,5 +35,3 @@
 cd gateway
 ./mvnw spring-boot:run
 ```
-
-默认端口 8101，可通过 `bootstrap.yml` 修改。

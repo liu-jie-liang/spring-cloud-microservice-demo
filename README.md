@@ -105,51 +105,11 @@ Spring Cloud Gateway，统一入口路由转发：
 
 ### demo - 核心业务模块
 
-项目最核心的模块，包含完整的业务逻辑。通过不同 Spring Profile 启动为不同角色（client 或 service-provider）。
+项目最核心的模块，通过不同 Spring Profile 启动为不同角色（client 或 service-provider）。
 
-**核心功能：**
+核心功能包括：双缓存策略（Caffeine + Redis + Bus）、多数据源（MySQL + MariaDB）、AOP 操作日志、Feign + 断路器、邮件发送、XSS 防护等。
 
-#### 1. 双缓存策略 (Caffeine + Redis)
-通过 `@DoubleCache` 注解实现多级缓存：
-- **查询流程**：Caffeine 本地缓存 → Redis 分布式缓存 → 数据库
-- **PUT 模式**：写入时先更新数据库，再更新 Redis，最后更新 Caffeine
-- **DELETE 模式**：延迟双删策略，先删 Redis 和 Caffeine，再删数据库，延迟后再删一次
-- **FULL 模式**：完整的读写双缓存
-
-```java
-@DoubleCache(cacheName = "student", key = "#sno", type = CacheType.PUT)
-public void updateStudent(String sno) { ... }
-```
-
-#### 2. 多数据源
-同时连接 MySQL 和 MariaDB，通过 `@ConditionalOnProperty` 条件装配：
-
-- **MySQL**：通过 `mysql` profile 激活（`application-mysql.yml`）
-- **MariaDB**：通过 `mariadb` profile 激活（`application-mariadb.yml`）
-- 两者可独立开关，互不影响
-
-#### 3. 操作日志
-通过 `@Log` 注解自动记录方法调用：
-
-```java
-@Log("查询学生")
-public Student getStudent(String sno) { ... }
-```
-
-日志自动写入 `syslog` 表，包含：操作内容、IP、请求URI、耗时、操作人等信息。
-
-#### 4. 邮件发送
-- 支持简单文本邮件
-- 支持复杂邮件（HTML + 内嵌图片 + 附件）
-- 支持 Thymeleaf 模板邮件
-- 通过 QQ SMTP 发送
-
-#### 5. 其他
-- **XSS 防护**：通过 Mica XSS 自动过滤输入
-- **枚举校验**：`@Enum` 注解 + `EnumConstraintValidator` 自定义参数校验
-- **Druid 监控**：可通过 `/druid` 访问 SQL 监控面板
-- **Swagger 文档**：SpringDoc OpenAPI 自动生成 API 文档
-- **Feign 声明式调用**：集成 LoadBalancer 做客户端负载均衡
+详见 [demo/README.md](demo/README.md)
 
 ### SpringCloudConfig - 配置仓库
 
@@ -251,9 +211,9 @@ mysql -u root -p < demo/src/main/resources/mapper/mariadb/sql/20230915.sql
 ```bash
 # 1. 启动 Eureka Server（注册中心必须先启动）
 cd eureka
-./mvnw spring-boot:run -Dspring.profiles.active=dev1
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev1
 # 双节点模式：再开一个终端
-./mvnw spring-boot:run -Dspring.profiles.active=dev2
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev2
 
 # 2. 启动 Config Server
 cd ../config
@@ -265,12 +225,12 @@ cd ../gateway
 
 # 4. 启动 Demo（核心业务模块）
 cd ../demo
-# 作为 service-provider 角色启动（provider1 实例）
-./mvnw spring-boot:run -Dspring.profiles.active=mariadb,redis,bus,feign,mail,provider1
-# 另一个终端：作为 service-provider 角色启动（provider2 实例）
-./mvnw spring-boot:run -Dspring.profiles.active=mariadb,redis,bus,feign,mail,provider2
-# 再一个终端：作为 client 角色启动
-./mvnw spring-boot:run -Dspring.profiles.active=client
+# 作为 client 角色启动
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev,mariadb,redis,bus,feign,mail
+# 另一个终端：作为 service-provider 角色启动（provider1 实例）
+./mvnw spring-boot:run -Dspring-boot.run.profiles=provider1,mariadb,redis,bus,feign,mail
+# 再一个终端：作为 service-provider 角色启动（provider2 实例）
+./mvnw spring-boot:run -Dspring-boot.run.profiles=provider2,mariadb,redis,bus,feign,mail
 ```
 
 ### 6. 验证服务
@@ -280,43 +240,40 @@ cd ../demo
 | 服务 | 地址 | 说明 |
 |------|------|------|
 | Eureka Dashboard | http://localhost:8761 | 用户名/密码: root/root |
-| Druid 监控 | http://localhost:8080/druid | 用户名/密码: druid/your_password |
-| Swagger 文档 | http://localhost:8080/doc.html | API 在线文档 |
-| 网关路由测试 | http://localhost:8102/api/demo/test | 通过网关访问 demo 服务 |
+| Druid 监控 | http://localhost:8081/web/druid | 用户名/密码: druid/your_password |
+| Swagger 文档 | http://localhost:8081/web/swagger-ui | API 在线文档 |
+| 网关路由测试 | http://localhost:8101/api/demo/test | 通过网关访问 demo 服务 |
 
 ---
 
 ## API 接口
-
-### Demo 模块接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/test` | 测试接口 |
-| GET | `/student/{sno}` | 根据学号查询学生 |
-| GET | `/students` | 分页查询学生列表 |
-| POST | `/student` | 新增学生 |
-| PUT | `/student` | 更新学生 |
-| DELETE | `/student/{sno}` | 删除学生 |
-| GET | `/cache/clear/{cacheName}` | 清除指定缓存 |
-| GET | `/sendSimpleMail` | 发送简单邮件 |
-| GET | `/sendMimeMail` | 发送复杂邮件（含图片+附件） |
-| GET | `/sendTemplateMail` | 发送模板邮件 |
-| GET | `/service-instance` | 查看当前服务实例信息 |
 
 ### 通过网关访问
 
 网关监听端口 8101/8102，路由规则通过 Config Server 下发：
 
 ```
-http://localhost:8102/api/demo/**  →  demo 服务的 /** （路径重写）
+http://localhost:8101/api/demo/**  →  demo 服务的 /** （路径重写）
 ```
+
+各模块的完整 API 详见子模块 README：demo 模块接口速查见 [demo/README.md](demo/README.md)。
 
 ---
 
 ## Spring Profile 说明
 
 ### Demo 模块支持的 Profile
+
+#### 运行角色
+
+| Profile | 端口 | 角色 | 应用名 |
+|---------|------|------|--------|
+| `dev` | 8081 | client（配置客户端） | client |
+| `dev2` | 8082 | client（配置客户端） | client |
+| `provider1` | 8083 | service-provider（服务提供者） | service-provider |
+| `provider2` | 8084 | service-provider（服务提供者） | service-provider |
+
+#### 功能 Profile
 
 | Profile | 对应配置文件 | 作用 |
 |---------|-------------|------|
@@ -332,22 +289,19 @@ http://localhost:8102/api/demo/**  →  demo 服务的 /** （路径重写）
 | `mybatisplus` | `application-mybatisplus.yml` | MyBatis-Plus 日志配置 |
 | `xss` | `application-xss.yml` | 启用 XSS 防护 |
 | `timezone` | `application-timezone.yml` | 时区配置 (默认 Asia/Shanghai) |
-| `provider1` | Bootstrap 配置 | 服务提供者角色，端口 8081 |
-| `provider2` | Bootstrap 配置 | 服务提供者角色，端口 8082 |
-| `client` | Bootstrap 配置 | 客户端角色，端口 8101 |
 | `prod` | `application-prod.properties` | 生产环境配置 |
 
 ### 组合示例
 
 ```bash
-# 最小启动（仅 MariaDB + Redis）
-./mvnw spring-boot:run -Dspring.profiles.active=mariadb,redis
+# 最小启动（仅 MariaDB + Redis，client 角色）
+./mvnw spring-boot:run -Dspring.profiles.active=dev,mariadb,redis
 
-# 全功能启动
-./mvnw spring-boot:run -Dspring.profiles.active=mariadb,mysql,redis,bus,feign,mail,xss,timezone
+# 全功能启动（client 角色）
+./mvnw spring-boot:run -Dspring.profiles.active=dev,mariadb,mysql,redis,bus,feign,mail,xss,timezone
 
 # 服务提供者启动
-./mvnw spring-boot:run -Dspring.profiles.active=mariadb,redis,bus,feign,mail,provider1
+./mvnw spring-boot:run -Dspring.profiles.active=provider1,mariadb,redis,bus,feign,mail
 ```
 
 ---
@@ -360,11 +314,10 @@ http://localhost:8102/api/demo/**  →  demo 服务的 /** （路径重写）
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DoubleCache {
-    String cacheName();              // 缓存名称
-    String key();                    // 缓存 key（支持 SpEL 表达式）
-    CacheType type() default GET;    // 缓存操作类型
-    long l1TimeOut() default 120;    // 一级缓存（Caffeine）过期时间（秒）
-    long l2TimeOut() default 120;    // 二级缓存（Redis）过期时间（秒）
+    String prefix();                    // 缓存 key 前缀，区分不同业务
+    String key();                       // 缓存 key（支持 SpringEL 表达式）
+    long expire() default 3600L;        // Redis 过期时间（秒）
+    CacheType type() default FULL;      // 缓存操作类型
 }
 ```
 
@@ -374,7 +327,7 @@ public @interface DoubleCache {
 |------|------|
 | `FULL` | 完整读写：查询优先读缓存，写入/删除同时操作缓存和数据库 |
 | `PUT` | 仅写入：执行方法后更新 Redis 和 Caffeine 缓存 |
-| `DELETE` | 延迟双删：先删缓存，执行方法，延迟后再删一次缓存 |
+| `DELETE` | 延迟双删：先删缓存，执行方法，延迟后再次删除缓存 |
 
 ---
 
