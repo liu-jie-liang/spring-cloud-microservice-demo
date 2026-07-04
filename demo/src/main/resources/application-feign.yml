@@ -1,0 +1,36 @@
+spring:
+  cloud:
+    circuitbreaker:
+      resilience4j:
+        enabled: true
+        enableGroupMeterFilter: true
+
+feign:
+  circuitbreaker:
+    enabled: true
+    group:
+      enabled: true
+  metrics:
+    enabled: true
+  client:
+    config:
+      api-gateway:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: FULL
+
+resilience4j.timelimiter:
+  configs:
+    default:
+      timeoutDuration: 2s
+      cancelRunningFuture: true
+  instances:
+    ServerInfo2Client#getPort():
+      baseConfig: default
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      minimumNumberOfCalls: 100
+  instances:
+    ServerInfo2Client#getPort():
+      baseConfig: default

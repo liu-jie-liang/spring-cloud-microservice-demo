@@ -1,0 +1,6 @@
+mica:
+  xss:
+    enabled: true
+    mode: escape
+    path-patterns: /**
+    path-exclude-patterns:

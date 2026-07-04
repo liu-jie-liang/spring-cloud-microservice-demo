@@ -1,0 +1,71 @@
+spring:
+  profiles:
+    active: dev,mariadb,mysqlbak,redisbak,timezone,mail,xss,bus,feign,redis
+  cloud:
+    config:
+      username: root
+      password: root
+      discovery:
+        enabled: true
+        service-id: config-server
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    registry-fetch-interval-seconds: 1
+    instance-info-replication-interval-seconds: 1
+    serviceUrl:
+      defaultZone: http://root:root@eureka1:8761/eureka/,http://root:root@eureka2:8762/eureka/
+
+---
+
+server:
+  port: 8081
+
+spring:
+  profiles: dev
+  cloud:
+    config:
+      profile: dev
+  application:
+    name: client
+
+---
+
+server:
+  port: 8082
+
+spring:
+  profiles: dev2
+  cloud:
+    config:
+      profile: dev2
+  application:
+    name: client
+
+---
+
+server:
+  port: 8083
+
+spring:
+  profiles: provider1
+  cloud:
+    config:
+      profile: provider1
+  application:
+    name: service-provider
+
+---
+
+server:
+  port: 8084
+
+spring:
+  profiles: provider2
+  cloud:
+    config:
+      profile: provider2
+  application:
+    name: service-provider

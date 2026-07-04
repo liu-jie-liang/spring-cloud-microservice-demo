@@ -1,0 +1,6 @@
+timezone:
+  enable: true
+  default: Asia/Shanghai
+  timezones:
+    cn: Asia/Shanghai
+    utc: UTC

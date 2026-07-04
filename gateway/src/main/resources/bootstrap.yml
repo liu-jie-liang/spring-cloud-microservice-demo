@@ -1,0 +1,45 @@
+spring:
+  profiles:
+    active: dev,feign
+  cloud:
+    config:
+      username: root
+      password: root
+      discovery:
+        enabled: true
+        service-id: config-server
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    registry-fetch-interval-seconds: 1
+    instance-info-replication-interval-seconds: 1
+    serviceUrl:
+      defaultZone: http://root:root@eureka1:8761/eureka/,http://root:root@eureka2:8762/eureka/
+
+---
+
+server:
+  port: 8101
+
+spring:
+  profiles: dev
+  cloud:
+    config:
+      profile: dev
+  application:
+    name: gateway
+
+---
+
+server:
+  port: 8102
+
+spring:
+  profiles: dev2
+  cloud:
+    config:
+      profile: dev2
+  application:
+    name: gateway

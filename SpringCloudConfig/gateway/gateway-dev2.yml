@@ -1,0 +1,38 @@
+spring:
+  cloud:
+    gateway:
+      default-filters:
+        - AddRequestHeader=gateway-env, springcloud-gateway
+      routes:
+        - id: "rewrite_client"
+          uri: "lb://client"
+          predicates:
+            - Path=/client/web/test_rewrite/**
+          filters:
+            - PreserveHostHeader
+            - RewritePath=/client/web/?(?<segment>.*), /web/v2/$\{segment}
+        - id: "rewrite_service-provider"
+          uri: "lb://service-provider"
+          predicates:
+            - Path=/service-provider/web/test_rewrite/**
+          filters:
+            - PreserveHostHeader
+            - RewritePath=/service-provider/web/?(?<segment>.*), /web/v2/$\{segment}
+        - id: "client"
+          uri: "lb://client"
+          predicates:
+            - Path=/client/**
+          filters:
+            - PreserveHostHeader
+            - RewritePath=/client/?(?<segment>.*), /$\{segment}
+        - id: "service-provider"
+          uri: "lb://service-provider"
+          predicates:
+            - Path=/service-provider/**
+          filters:
+            - PreserveHostHeader
+            - RewritePath=/service-provider/?(?<segment>.*), /$\{segment}
+            - name: CircuitBreaker
+              args:
+                name: testCircuitBreaker
+                fallbackUri: forward:/service-provider/web/fallback

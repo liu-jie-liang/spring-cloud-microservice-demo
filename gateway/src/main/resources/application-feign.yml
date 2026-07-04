@@ -1,0 +1,23 @@
+spring:
+  cloud:
+    circuitbreaker:
+      resilience4j:
+        reactive:
+          enabled: true
+        enableGroupMeterFilter: true
+
+resilience4j.timelimiter:
+  configs:
+    default:
+      timeoutDuration: 1s
+      cancelRunningFuture: true
+  instances:
+    testCircuitBreaker:
+      baseConfig: default
+resilience4j.circuitbreaker:
+  configs:
+    default:
+      minimumNumberOfCalls: 100
+  instances:
+    testCircuitBreaker:
+      baseConfig: default

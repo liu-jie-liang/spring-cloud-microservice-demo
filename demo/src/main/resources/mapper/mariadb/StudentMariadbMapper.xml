@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.mariadb.StudentMariadbMapper">
+    <select id="getAllStudents" resultType="com.example.demo.bean.Student">
+        select * from student where 1=1 or sno = 'mariadb'
+    </select>
+
+    <select id="getStudentsByPage" resultType="com.example.demo.bean.Student">
+        select * from student where 1=1 or sno = 'mariadb'
+    </select>
+
+    <select id="queryStudentBySno" resultType="com.example.demo.bean.Student">
+        select * from student where sno = #{sno}
+    </select>
+
+    <update id="update" parameterType="com.example.demo.bean.Student">
+        update student
+        set sname = #{sname}, ssex = #{ssex}
+        where sno = #{sno}
+    </update>
+
+    <delete id="deleteStudentBySno">
+        delete from student where sno = #{sno}
+    </delete>
+</mapper>

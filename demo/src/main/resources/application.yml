@@ -1,0 +1,65 @@
+server:
+  forward-headers-strategy: framework
+  servlet:
+    context-path: /web/
+
+druid:
+  mysql:
+    enable: true
+  mariadb:
+    enable: true
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+springdoc:
+  version: '@springdoc.version@'
+  swagger-ui:
+    display-request-duration: true
+    groups-order: DESC
+    operationsSorter: method
+    disable-swagger-default-url: true
+    use-root-path: false
+    path: /swagger-ui  # 设置 Swagger UI 的访问路径为 /swagger-ui
+  api-docs:
+    path: /api-docs  # 设置 OpenAPI 文档的访问路径为 /api-docs
+  show-actuator: true
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com:
+      example:
+        demo:
+          mapper:
+            mariadb: debug
+            mysql: debug
+
+spring:
+  datasource:
+    druid:
+      #3.基础监控配置
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        #设置不统计哪些URL
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*"
+        session-stat-enable: true
+        session-stat-max-count: 100
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        reset-enable: true
+        #设置监控页面的登录名和密码
+        login-username: admin
+        login-password: admin
+        allow: 127.0.0.1
+        #deny: 192.168.1.100
