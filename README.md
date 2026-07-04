@@ -71,56 +71,13 @@ Zoom/
 
 ## 模块说明
 
-### eureka - 服务注册中心
-
-Eureka Server，支持双节点高可用部署：
-
-- **节点1**: 端口 8761，hostname=eureka1
-- **节点2**: 端口 8762，hostname=eureka2
-- 两个节点互相注册，形成集群
-- 启用了 Spring Security 基础认证
-
-详见 [eureka/README.md](eureka/README.md)
-
-### config - 配置中心
-
-Spring Cloud Config Server，从本地 Git 仓库 (`SpringCloudConfig/`) 拉取配置：
-
-- 支持 Bus + RabbitMQ 配置热刷新
-- 注册到 Eureka，可通过服务名访问
-- 启用了 Spring Security 基础认证
-
-详见 [config/README.md](config/README.md)
-
-### gateway - API 网关
-
-Spring Cloud Gateway，统一入口路由转发：
-
-- 支持路径重写（如 `/api/demo/**` → `/**`）
-- 集成 Resilience4j 断路器
-- 从 Eureka 做负载均衡
-- 可注入自定义请求头
-
-详见 [gateway/README.md](gateway/README.md)
-
-### demo - 核心业务模块
-
-项目最核心的模块，通过不同 Spring Profile 启动为不同角色（client 或 service-provider）。
-
-核心功能包括：双缓存策略（Caffeine + Redis + Bus）、多数据源（MySQL + MariaDB）、AOP 操作日志、Feign + 断路器、邮件发送、XSS 防护等。
-
-详见 [demo/README.md](demo/README.md)
-
-### SpringCloudConfig - 配置仓库
-
-Config Server 的配置数据源，按服务名分类存放各模块的配置：
-
-```
-SpringCloudConfig/
-├── client/                 # demo 模块作为 client 角色时的配置
-├── gateway/                # gateway 模块的配置（路由规则等）
-└── service-provider/       # demo 模块作为 service-provider 角色时的配置
-```
+| 模块 | 说明 | 详细文档 |
+|------|------|---------|
+| **eureka** | 服务注册与发现中心（Eureka Server），支持双节点高可用 | [eureka/README.md](eureka/README.md) |
+| **config** | 集中配置管理（Config Server + Bus 热刷新） | [config/README.md](config/README.md) |
+| **gateway** | API 网关（Gateway），路由转发 + 断路器 | [gateway/README.md](gateway/README.md) |
+| **demo** | 核心业务模块，双缓存/多数据源/Feign/邮件/AOP 日志等 | [demo/README.md](demo/README.md) |
+| **SpringCloudConfig** | Config Server 的本地配置仓库 | [SpringCloudConfig/README.md](SpringCloudConfig/README.md) |
 
 ---
 
@@ -194,15 +151,7 @@ mysql -u root -p < demo/src/main/resources/mapper/mariadb/sql/20230915.sql
 
 ### 4. 配置 hosts（Eureka 高可用需要）
 
-如果使用 Eureka 双节点模式，需要配置 hosts：
-
-```bash
-# /etc/hosts
-127.0.0.1 eureka1
-127.0.0.1 eureka2
-```
-
-单节点模式不需要此步骤。
+双节点模式需配置 hosts，详见 [eureka/README.md](eureka/README.md)。单节点模式可跳过。
 
 ### 5. 启动顺序
 
@@ -243,91 +192,6 @@ cd ../demo
 | Druid 监控 | http://localhost:8081/web/druid | 用户名/密码: druid/your_password |
 | Swagger 文档 | http://localhost:8081/web/swagger-ui | API 在线文档 |
 | 网关路由测试 | http://localhost:8101/api/demo/test | 通过网关访问 demo 服务 |
-
----
-
-## API 接口
-
-### 通过网关访问
-
-网关监听端口 8101/8102，路由规则通过 Config Server 下发：
-
-```
-http://localhost:8101/api/demo/**  →  demo 服务的 /** （路径重写）
-```
-
-各模块的完整 API 详见子模块 README：demo 模块接口速查见 [demo/README.md](demo/README.md)。
-
----
-
-## Spring Profile 说明
-
-### Demo 模块支持的 Profile
-
-#### 运行角色
-
-| Profile | 端口 | 角色 | 应用名 |
-|---------|------|------|--------|
-| `dev` | 8081 | client（配置客户端） | client |
-| `dev2` | 8082 | client（配置客户端） | client |
-| `provider1` | 8083 | service-provider（服务提供者） | service-provider |
-| `provider2` | 8084 | service-provider（服务提供者） | service-provider |
-
-#### 功能 Profile
-
-| Profile | 对应配置文件 | 作用 |
-|---------|-------------|------|
-| `mysql` | `application-mysql.yml` | 启用 MySQL 数据源 |
-| `mariadb` | `application-mariadb.yml` | 启用 MariaDB 数据源 |
-| `mysqlbak` | `application-mysqlbak.properties` | 启用 MySQL 备用数据源 |
-| `redis` | `application-redis.properties` | 启用 Redis 缓存 |
-| `redisbak` | `application-redisbak.yml` | 启用 Redis 备用缓存 |
-| `bus` | `application-bus.yml` | 启用消息总线 (RabbitMQ) |
-| `feign` | `application-feign.yml` | 启用 Feign + Resilience4j 断路器 |
-| `mail` | `application-mail.properties` | 启用邮件发送 |
-| `mybatis` | `application-mybatis.yml` | MyBatis 驼峰命名配置 |
-| `mybatisplus` | `application-mybatisplus.yml` | MyBatis-Plus 日志配置 |
-| `xss` | `application-xss.yml` | 启用 XSS 防护 |
-| `timezone` | `application-timezone.yml` | 时区配置 (默认 Asia/Shanghai) |
-| `prod` | `application-prod.properties` | 生产环境配置 |
-
-### 组合示例
-
-```bash
-# 最小启动（仅 MariaDB + Redis，client 角色）
-./mvnw spring-boot:run -Dspring.profiles.active=dev,mariadb,redis
-
-# 全功能启动（client 角色）
-./mvnw spring-boot:run -Dspring.profiles.active=dev,mariadb,mysql,redis,bus,feign,mail,xss,timezone
-
-# 服务提供者启动
-./mvnw spring-boot:run -Dspring.profiles.active=provider1,mariadb,redis,bus,feign,mail
-```
-
----
-
-## 缓存策略说明
-
-### @DoubleCache 注解
-
-```java
-@Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface DoubleCache {
-    String prefix();                    // 缓存 key 前缀，区分不同业务
-    String key();                       // 缓存 key（支持 SpringEL 表达式）
-    long expire() default 3600L;        // Redis 过期时间（秒）
-    CacheType type() default FULL;      // 缓存操作类型
-}
-```
-
-### CacheType 枚举
-
-| 类型 | 说明 |
-|------|------|
-| `FULL` | 完整读写：查询优先读缓存，写入/删除同时操作缓存和数据库 |
-| `PUT` | 仅写入：执行方法后更新 Redis 和 Caffeine 缓存 |
-| `DELETE` | 延迟双删：先删缓存，执行方法，延迟后再次删除缓存 |
 
 ---
 
